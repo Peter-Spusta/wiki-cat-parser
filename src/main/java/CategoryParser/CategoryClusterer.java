@@ -15,6 +15,17 @@ public class CategoryClusterer {
 	static Map<String, Object> categories = new TreeMap<String, Object>();
 	static Map<String, Integer> allKeyWords = new TreeMap<String, Integer>();
 	
+	public static void createClusters(List<Article> articles) {
+		fillCategories(articles);
+		
+		categories.forEach((c1, c1Kw) -> {
+			categories.forEach((c2,c2Kw) -> {
+				System.out.println(c1 + " ?= " + c2);
+				CalculateCategoryDistance((Map<String, Integer>)c1Kw, (Map<String, Integer>)c2Kw);
+			});
+		});
+	}
+	
 	@SuppressWarnings("unchecked")
 	public static void fillCategories(List<Article> articles) {
 		//create list of all keywords
@@ -28,13 +39,22 @@ public class CategoryClusterer {
 			article.getCategories().forEach(cat -> {
 				
 				Map<String, Integer> keyWords = new TreeMap<String, Integer>();
-				keyWords.putAll(allKeyWords);
+				//keyWords.putAll(allKeyWords);
 				
 				keyWords.putAll(article.getKeyWords());
 				
 				
 				if (categories.containsKey(cat.getName())) {
-					keyWords.putAll(((TreeMap<String, Integer>)categories.get(cat.getName())));
+					
+					//ak sa druhy raz nasla rovnaka trieda tak sa vahy rovnakych keyWords tychto dvoch vyskytov triedy zrataju
+					for (Map.Entry<String, Integer> word : ((TreeMap<String, Integer>)categories.get(cat.getName())).entrySet()) {
+						if (keyWords.containsKey(word.getKey())) {
+							keyWords.put(word.getKey(), word.getValue()+keyWords.get(word.getKey()));
+			        	} else {
+			        		keyWords.put(word.getKey(), word.getValue());
+			        	}
+					}
+					//keyWords.putAll(((TreeMap<String, Integer>)categories.get(cat.getName())));
 				}
 				categories.put(cat.getName(),keyWords);
 			});
@@ -67,14 +87,18 @@ public class CategoryClusterer {
 		}
 	}*/
 	
-	public int CalculateCategoryDistance(Map<String, Integer> c1Words, Map<String, Integer> c2Words) {
+	public static int CalculateCategoryDistance(Map<String, Integer> c1Kw, Map<String, Integer> c2Kw) {
 		int match = 0;
-		c1Words.forEach((word, num) -> {
-			if (c2Words.containsKey(word)) {
-			//	match++;
+		
+		for (Map.Entry<String, Integer> word : c1Kw.entrySet()) {
+			if (c2Kw.containsKey(word.getKey())) {
+				match++;
 			}
-		});
+		}
 
+		if (match != 0) {
+			System.out.println("Look at least something is working");
+		}
 		return match;
 	}
 

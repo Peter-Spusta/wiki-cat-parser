@@ -21,7 +21,7 @@ public class CategoryParser {
 			article.printArticle();
 		});
 		
-		CategoryClusterer.fillCategories(articles);
+		CategoryClusterer.createClusters(articles);
 		
 		Map<String, Object> categories = CategoryClusterer.getCategories();
 		System.out.println(categories);

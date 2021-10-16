@@ -77,6 +77,7 @@ public class TextParser {
 		return cleanedText;
 	}
 	
+	//get word frequency and remove some stop words and solve word in plural vs singular
 	public static void getWordFrequency(Article article) {
         Map<String,Integer> mp = new TreeMap<>();
         JaccardSimilarity jaccardSimilarity = new JaccardSimilarity();
@@ -112,6 +113,7 @@ public class TextParser {
         		word.equals("only") || word.equals("first") || word.equals("second") ||
         		word.equals("third") || word.equals("one") || word.equals("three") ||
         		word.equals("between") || word.equals("either") || word.equals("non") ||
+        		word.equals("thumb") ||
         		word.length() <= 1) {
         		continue;
         	}
