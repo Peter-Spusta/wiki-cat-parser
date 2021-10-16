@@ -35,7 +35,7 @@ public class CategoryParser {
 		List<Article> articles = new ArrayList<Article>();
 		Article articleFound = null;
 		
-		fileReader.readFile("C:\\Users\\petos\\OneDrive\\Documents\\FIIT\\Vyhladavanie informacii\\src\\main\\resources\\WikiDumpFiles\\enwiki-latest-pages-articles1.xml-p1p41242");
+		fileReader.readFile("C:\\Users\\petos\\OneDrive\\Documents\\FIIT\\Vyhladavanie informacii\\project\\wikiDumpFiles\\enwiki-latest-pages-articles1.xml-p1p41242");
 		
 		int cnt = 0;
 		

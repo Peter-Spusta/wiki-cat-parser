@@ -71,7 +71,7 @@ public class CategoryClusterer {
 		int match = 0;
 		c1Words.forEach((word, num) -> {
 			if (c2Words.containsKey(word)) {
-				match++;
+			//	match++;
 			}
 		});
 
