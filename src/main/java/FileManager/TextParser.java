@@ -64,6 +64,7 @@ public class TextParser {
 			line = line.replaceAll("&.+?;", "");
 			line = line.replaceAll("^.{0,1}\\|.*", "");
 			line = line.replace("'s", "");
+			line = line.replace("\\* \\[.*?]", "");
 			
 			if (!line.isBlank()) {
 				cleanedText.add(line);
@@ -113,7 +114,8 @@ public class TextParser {
         		word.equals("only") || word.equals("first") || word.equals("second") ||
         		word.equals("third") || word.equals("one") || word.equals("three") ||
         		word.equals("between") || word.equals("either") || word.equals("non") ||
-        		word.equals("thumb") ||
+        		word.equals("thumb") || word.equals("them") || word.equals("you") ||
+        		word.equals("our") || word.equals("year") ||
         		word.length() <= 1) {
         		continue;
         	}

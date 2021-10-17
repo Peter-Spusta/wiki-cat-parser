@@ -10,6 +10,7 @@ import FileManager.FileParser;
 import FileManager.FileReader;
 import FileManager.TextParser;
 import Types.Article;
+import Types.Cluster;
 
 public class CategoryParser {
 
@@ -17,16 +18,10 @@ public class CategoryParser {
 		List<Article> articles = new ArrayList<Article>();
 		articles = getArticles();
 		
-		articles.forEach(article -> {
-			article.printArticle();
-		});
+		CategoryClusterer.doClustering(articles);
 		
-		CategoryClusterer.createClusters(articles);
-		
-		Map<String, Object> categories = CategoryClusterer.getCategories();
-		System.out.println(categories);
-		Map<String, Integer> allKeyWords = CategoryClusterer.getAllKeyWords();
-		System.out.println(allKeyWords);
+		List<Cluster> clusters = CategoryClusterer.clusters;
+		System.out.println(clusters);
 	}
 	
 	public static List<Article> getArticles() throws Exception {

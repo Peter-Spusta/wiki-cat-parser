@@ -10,6 +10,11 @@ public class Category {
 		this.keyWords = keyWords;
 	}
 	
+	public Category(Category cat) {
+		this.name = cat.getName();
+		this.keyWords = cat.getKeyWords();
+	}
+	
 	public String getName() {
 		return name;
 	}

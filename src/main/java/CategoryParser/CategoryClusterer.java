@@ -9,21 +9,106 @@ import java.util.TreeSet;
 
 import Types.Article;
 import Types.Category;
+import Types.Cluster;
 
 public class CategoryClusterer {
 	
 	static Map<String, Object> categories = new TreeMap<String, Object>();
-	static Map<String, Integer> allKeyWords = new TreeMap<String, Integer>();
 	
-	public static void createClusters(List<Article> articles) {
+	//probably isnt needed
+	static Map<String, Integer> allKeyWords = new TreeMap<String, Integer>();
+	static List<Cluster> clusters = new ArrayList<Cluster>();
+	
+	public static void doClustering(List<Article> articles) {
 		fillCategories(articles);
 		
-		categories.forEach((c1, c1Kw) -> {
-			categories.forEach((c2,c2Kw) -> {
-				System.out.println(c1 + " ?= " + c2);
-				CalculateCategoryDistance((Map<String, Integer>)c1Kw, (Map<String, Integer>)c2Kw);
-			});
+		setCentroids((int) Math.sqrt(categories.size()), articles);
+		
+		createClusters();
+		
+		for (int i = 0; i < 100; i++) {
+			recalculateCluster();
+		}
+	}
+	
+	public static void recalculateCluster() {
+		
+		clusters.forEach(cluster -> {
+			
+			Integer bestDistance = 0;
+			Integer distanceMean = 0;
+			Category newCentroid = null;
+			
+			for(Map.Entry<String, Object> cat1 : cluster.getCategories().entrySet()) {
+				
+				for(Map.Entry<String, Object> cat2 : cluster.getCategories().entrySet()) {
+					if (cat1.getKey() != cat2.getKey()) {
+						distanceMean += CalculateCategoryDistance((Map<String, Integer>) cat1.getValue(), (Map<String, Integer>) cat2.getValue());
+					}
+				};
+				
+				if (distanceMean >= bestDistance ) {
+					distanceMean = distanceMean/cluster.getCategories().size();
+					newCentroid = new Category(cat1.getKey(), (Map<String, Integer>) cat1.getValue());
+				}
+			}
+			
+			if (newCentroid == null) {
+				cluster.setCentroid(cluster.getCentroid());
+			} else {
+				cluster.setCentroid(newCentroid);
+			}
+			
+			cluster.getCategories().clear();
 		});
+		
+		createClusters();
+	}
+	
+	//set k centroids
+	@SuppressWarnings("unchecked")
+	public static void setCentroids(int k, List<Article> articles) {
+		for (int i = 0; i < k; i++) {
+			List<Category> catList = articles.get((int) (Math.random() * (articles.size()))).getCategories();
+			
+			Category cat = catList.get((int) (Math.random() * catList.size()));
+			Cluster cluster = new Cluster();
+			
+			cluster.setCentroid(cat.getName(),(Map<String, Integer>) categories.get(cat.getName()));
+			clusters.add(cluster);
+		}
+		
+		//printCluster();
+	}
+	
+	public static void createClusters() {
+		categories.forEach((catName, catKeyWords) -> {
+			findClosestCluster(catName, catKeyWords);
+		});
+	}
+	
+	public static void findClosestCluster(String category, Object catKeyWords) {
+		Cluster closest = null;
+		int match = 0;
+		
+		for (Cluster cluster : clusters) {	
+			String categoryName = cluster.getCentroid().getName();
+			int distance = CalculateCategoryDistance((Map<String, Integer>)cluster.getCentroid().getKeyWords(), (Map<String, Integer>)catKeyWords);
+			
+			if (distance > match) {
+				 match = distance;
+				 closest = cluster;
+			}
+		}
+		
+		//there isnt any similar centroid
+		if (closest == null) {
+			Cluster cluster = new Cluster();
+			cluster.setCentroid(category, (Map<String, Integer>) catKeyWords);
+			clusters.add(cluster);
+		} else {
+			closest.getCategories().put(category, catKeyWords);
+		}
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -61,45 +146,25 @@ public class CategoryClusterer {
 		}
 	}
 	
-	//pokus s bitsetmi
-	/*public static BitSet createBitSetFromKeyWords(BitSet actualBs, Map<String, Integer> keyWords) {
-		BitSet bs = new BitSet();
-		int index = 0;
-		
-		if (actualBs != null) {
-			keyWords.forEach((word, num) -> {
-				if (num != 0) {
-					actualBs.set(index, true);
-				} else {
-					actualBs.set(index, false);
-				}
-			});
-			return actualBs;
-		} else {
-			keyWords.forEach((word, num) -> {
-				if (num != 0) {
-					bs.set(index);
-				} else {
-					bs.set(index, false);
-				}
-			});
-			return bs;
-		}
-	}*/
-	
 	public static int CalculateCategoryDistance(Map<String, Integer> c1Kw, Map<String, Integer> c2Kw) {
 		int match = 0;
 		
 		for (Map.Entry<String, Integer> word : c1Kw.entrySet()) {
-			if (c2Kw.containsKey(word.getKey())) {
-				match++;
+			if (c2Kw.containsKey(word.getKey( ))) {
+				match += word.getValue();
 			}
 		}
 
-		if (match != 0) {
-			System.out.println("Look at least something is working");
-		}
+		
 		return match;
+	}
+	
+	static void printCluster() {
+		clusters.forEach(cluster -> {
+			System.out.println(cluster.getCentroid().getName());
+			System.out.println(cluster.getCentroid().getKeyWords());
+			System.out.println();
+		});
 	}
 
 	public static Map<String, Object> getCategories() {
