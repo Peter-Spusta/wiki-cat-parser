@@ -1,11 +1,17 @@
 package Types;
 
+import java.io.Serializable;
 import java.util.Map;
 import java.util.TreeMap;
 
-public class Cluster {
+public class Cluster implements Serializable {
 	
-	 Category centroid;
+	 /**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	
+	Category centroid;
 	 Map<String, Object> categories = new TreeMap<String, Object>();
 	
 	public Category getCentroid() {

@@ -1,7 +1,12 @@
 package Types;
+import java.io.Serializable;
 import java.util.Map;
 
-public class Category {
+public class Category implements Serializable {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 	String name = null;
 	Map<String, Integer> keyWords = null;
 	

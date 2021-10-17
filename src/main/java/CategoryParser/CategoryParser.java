@@ -25,6 +25,7 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.store.RAMDirectory;
 
+import FileManager.ClusterPersistance;
 import FileManager.FileParser;
 import FileManager.FileReader;
 import FileManager.TextParser;
@@ -34,13 +35,14 @@ import Types.Cluster;
 public class CategoryParser {
 
 	public static void main(String[] args) throws Exception {
-		List<Article> articles = new ArrayList<Article>();
+		/*List<Article> articles = new ArrayList<Article>();
 		articles = getArticles(5);
 		
 		CategoryClusterer.doClustering(articles);
 		
-		List<Cluster> clusters = CategoryClusterer.clusters;
-		//System.out.println(clusters);
+		ClusterPersistance.saveClusterToFile(CategoryClusterer.clusters);*/
+		
+		CategoryClusterer.clusters = ClusterPersistance.getClusterFromFile();
 		
 		StandardAnalyzer analyzer = new StandardAnalyzer();
 		Directory index = new RAMDirectory();
@@ -48,42 +50,20 @@ public class CategoryParser {
 		IndexWriterConfig config = new IndexWriterConfig(analyzer);
 		IndexWriter writer = new IndexWriter(index, config);
 		
-		 CategoryClusterer.clusters.forEach(cluster -> {
-			 cluster.getCategories().forEach((category, keyWords) -> {
-				 try {
-					addDoc(writer, category, cluster.getCentroid().getName());
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			 });
-		 });
-		
-		writer.close();
+		createIndexes(writer);
 		
 		String querystr = "war";
-		Query q = new QueryParser("category", analyzer).parse(querystr);
+		Query query = new QueryParser("category", analyzer).parse(querystr);
 
 		int hitsPerPage = 10;
 		IndexReader reader = DirectoryReader.open(index);
 		IndexSearcher searcher = new IndexSearcher(reader);
 		TopScoreDocCollector collector = TopScoreDocCollector.create(hitsPerPage);
-		searcher.search(q, collector);
+		searcher.search(query, collector);
 		ScoreDoc[] hits = collector.topDocs().scoreDocs;
 
-		System.out.println("Query string: " + querystr );
-		System.out.println("Found " + hits.length + " hits.");
-		for (int i = 0; i < hits.length; ++i) {
-			int docId = hits[i].doc;
-			Document d = searcher.doc(docId);
-			System.out.println((i + 1) + ". " + d.get("category") + "\t in cluster: " + d.get("cluster"));
-			Cluster foundCluster = CategoryClusterer.getClusterByCentroid(d.get("cluster"));
-			if (foundCluster != null) {
-				System.out.println("Similar categories");
-				foundCluster.getCategories().forEach((cat, keyWords) -> {
-					System.out.println("\t" + cat);
-				});
-			}
-		}// Finally , close reader
+		printFoundedResults(hits, searcher);
+	
 		reader.close();
 	}
 	
@@ -135,6 +115,35 @@ public class CategoryParser {
 		doc.add(new TextField("category", category, Field.Store.YES));
 		doc.add(new TextField("cluster", cluster, Field.Store.YES));
 		w.addDocument(doc);
+	}
+	
+	public static void createIndexes(IndexWriter writer) throws IOException {
+		 CategoryClusterer.clusters.forEach(cluster -> {
+			 cluster.getCategories().forEach((category, keyWords) -> {
+				 try {
+					addDoc(writer, category, cluster.getCentroid().getName());
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			 });
+		 });
+		
+		writer.close();
+	}
+	
+	public static void printFoundedResults(ScoreDoc[] hits, IndexSearcher searcher) throws IOException {
+		System.out.println("Found " + hits.length + " hits.");
+		for (int i = 0; i < hits.length; ++i) {
+			int docId = hits[i].doc;
+			Document d = searcher.doc(docId);
+			System.out.println((i + 1) + ". " + d.get("category") + "\t in cluster: " + d.get("cluster"));
+			Cluster foundCluster = CategoryClusterer.getClusterByCentroid(d.get("cluster"));
+			if (foundCluster != null) {
+				System.out.println("Similar categories");
+				foundCluster.getCategories().forEach((cat, keyWords) -> {
+					System.out.println("\t" + cat);
+				});
+			}
 		}
-
+	}
 }
