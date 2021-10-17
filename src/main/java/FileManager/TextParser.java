@@ -65,6 +65,7 @@ public class TextParser {
 			line = line.replaceAll("^.{0,1}\\|.*", "");
 			line = line.replace("'s", "");
 			line = line.replace("\\* \\[.*?]", "");
+			line = line.replace("^\\*.+", "");
 			
 			if (!line.isBlank()) {
 				cleanedText.add(line);
@@ -79,7 +80,7 @@ public class TextParser {
 	}
 	
 	//get word frequency and remove some stop words and solve word in plural vs singular
-	public static void getWordFrequency(Article article) {
+	public static void getWordFrequency(Article article, Integer keyWordsCnt) {
         Map<String,Integer> mp = new TreeMap<>();
         JaccardSimilarity jaccardSimilarity = new JaccardSimilarity();
         
@@ -115,7 +116,9 @@ public class TextParser {
         		word.equals("third") || word.equals("one") || word.equals("three") ||
         		word.equals("between") || word.equals("either") || word.equals("non") ||
         		word.equals("thumb") || word.equals("them") || word.equals("you") ||
-        		word.equals("our") || word.equals("year") ||
+        		word.equals("our") || word.equals("year") || word.equals("him") ||
+        		word.equals("cite") || word.equals("form") || word.equals("will") ||
+        		word.equals("was") ||
         		word.length() <= 1) {
         		continue;
         	}
@@ -138,7 +141,7 @@ public class TextParser {
         	}
         }
       
-        article.setKeyWords(getKLargest(mp, 10));
+        article.setKeyWords(getKLargest(mp, keyWordsCnt));
 	}
 	
 	public static String wordToLowerCase(String word) {

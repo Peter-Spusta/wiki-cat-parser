@@ -26,25 +26,30 @@ public class CategoryClusterer {
 		
 		createClusters();
 		
-		for (int i = 0; i < 100; i++) {
+		for (int i = 0; i < 10; i++) {
 			recalculateCluster();
 		}
 	}
 	
 	public static void recalculateCluster() {
 		
-		clusters.forEach(cluster -> {
+		List<Cluster> emptyClusters = new ArrayList<Cluster>();
+		for(Cluster cluster : clusters) {
 			
+			if (cluster.getCategories().size() <= 1) {
+				emptyClusters.add(cluster);
+			}
+				
 			Integer bestDistance = 0;
 			Integer distanceMean = 0;
 			Category newCentroid = null;
-			
+				
 			for(Map.Entry<String, Object> cat1 : cluster.getCategories().entrySet()) {
 				
 				for(Map.Entry<String, Object> cat2 : cluster.getCategories().entrySet()) {
 					if (cat1.getKey() != cat2.getKey()) {
 						distanceMean += CalculateCategoryDistance((Map<String, Integer>) cat1.getValue(), (Map<String, Integer>) cat2.getValue());
-					}
+					} 
 				};
 				
 				if (distanceMean >= bestDistance ) {
@@ -60,8 +65,11 @@ public class CategoryClusterer {
 			}
 			
 			cluster.getCategories().clear();
-		});
+		}
 		
+		emptyClusters.forEach(cluster -> {
+			clusters.remove(cluster);
+		});
 		createClusters();
 	}
 	
@@ -77,8 +85,6 @@ public class CategoryClusterer {
 			cluster.setCentroid(cat.getName(),(Map<String, Integer>) categories.get(cat.getName()));
 			clusters.add(cluster);
 		}
-		
-		//printCluster();
 	}
 	
 	public static void createClusters() {
@@ -92,7 +98,12 @@ public class CategoryClusterer {
 		int match = 0;
 		
 		for (Cluster cluster : clusters) {	
+			
 			String categoryName = cluster.getCentroid().getName();
+			if (category.equals("1918 establishments in the United States")) {
+				System.out.println("");
+			}
+				
 			int distance = CalculateCategoryDistance((Map<String, Integer>)cluster.getCentroid().getKeyWords(), (Map<String, Integer>)catKeyWords);
 			
 			if (distance > match) {
@@ -103,9 +114,9 @@ public class CategoryClusterer {
 		
 		//there isnt any similar centroid
 		if (closest == null) {
-			Cluster cluster = new Cluster();
-			cluster.setCentroid(category, (Map<String, Integer>) catKeyWords);
-			clusters.add(cluster);
+			Cluster newCluster = new Cluster();
+			newCluster.setCentroid(category, (Map<String, Integer>) catKeyWords);
+			clusters.add(newCluster);
 		} else {
 			closest.getCategories().put(category, catKeyWords);
 		}
