@@ -75,7 +75,14 @@ public class CategoryParser {
 		for (int i = 0; i < hits.length; ++i) {
 			int docId = hits[i].doc;
 			Document d = searcher.doc(docId);
-			System.out.println((i + 1) + ". " + d.get("cluster") + "\t" + d.get("category"));
+			System.out.println((i + 1) + ". " + d.get("category") + "\t in cluster: " + d.get("cluster"));
+			Cluster foundCluster = CategoryClusterer.getClusterByCentroid(d.get("cluster"));
+			if (foundCluster != null) {
+				System.out.println("Similar categories");
+				foundCluster.getCategories().forEach((cat, keyWords) -> {
+					System.out.println("\t" + cat);
+				});
+			}
 		}// Finally , close reader
 		reader.close();
 	}

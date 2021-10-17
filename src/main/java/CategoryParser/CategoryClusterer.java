@@ -170,6 +170,16 @@ public class CategoryClusterer {
 		return match;
 	}
 	
+	
+	public static Cluster getClusterByCentroid(String centroid) {
+		for(Cluster cluster : clusters) {
+			if (cluster.getCentroid().getName().equals(centroid)) {
+				return cluster;
+			}
+		}
+		return null;
+	}
+	
 	static void printCluster() {
 		clusters.forEach(cluster -> {
 			System.out.println(cluster.getCentroid().getName());
