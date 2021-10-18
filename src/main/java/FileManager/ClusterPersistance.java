@@ -15,7 +15,7 @@ import Types.Cluster;
 public class ClusterPersistance {
 
 	public static void saveClusterToFile(List<Cluster> clusters) throws IOException {
-		FileOutputStream f = new FileOutputStream(new File("myObjects.txt"));
+		FileOutputStream f = new FileOutputStream(new File("clusterPersistance.txt"));
 		ObjectOutputStream o = new ObjectOutputStream(f);
 
 		// Write objects to file
@@ -33,7 +33,7 @@ public class ClusterPersistance {
 	}
 	
 	public static List<Cluster> getClusterFromFile() throws IOException, ClassNotFoundException {
-		FileInputStream f = new FileInputStream(new File("myObjects.txt"));
+		FileInputStream f = new FileInputStream(new File("clusterPersistance.txt"));
 		ObjectInputStream o = new ObjectInputStream(f);
 
 		List<Cluster> clusters = new ArrayList<Cluster>();

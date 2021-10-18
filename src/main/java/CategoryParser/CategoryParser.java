@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Scanner;
 import java.util.TreeMap;
 
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -35,14 +36,18 @@ import Types.Cluster;
 public class CategoryParser {
 
 	public static void main(String[] args) throws Exception {
-		/*List<Article> articles = new ArrayList<Article>();
-		articles = getArticles(5);
-		
-		CategoryClusterer.doClustering(articles);
-		
-		ClusterPersistance.saveClusterToFile(CategoryClusterer.clusters);*/
-		
-		CategoryClusterer.clusters = ClusterPersistance.getClusterFromFile();
+		//check if categories was already clustered
+		File file = new File("clusterPersistance.txt");
+        if (file.length() == 0) {
+        	List<Article> articles = new ArrayList<Article>();
+			articles = getArticles(5);
+			
+			CategoryClusterer.doClustering(articles);
+			
+			ClusterPersistance.saveClusterToFile(CategoryClusterer.clusters);
+        } else {
+        	CategoryClusterer.clusters = ClusterPersistance.getClusterFromFile();
+        }
 		
 		StandardAnalyzer analyzer = new StandardAnalyzer();
 		Directory index = new RAMDirectory();
@@ -52,19 +57,24 @@ public class CategoryParser {
 		
 		createIndexes(writer);
 		
-		String querystr = "war";
-		Query query = new QueryParser("category", analyzer).parse(querystr);
-
-		int hitsPerPage = 10;
-		IndexReader reader = DirectoryReader.open(index);
-		IndexSearcher searcher = new IndexSearcher(reader);
-		TopScoreDocCollector collector = TopScoreDocCollector.create(hitsPerPage);
-		searcher.search(query, collector);
-		ScoreDoc[] hits = collector.topDocs().scoreDocs;
-
-		printFoundedResults(hits, searcher);
+		while(true) {
+			System.out.print("Query: ");
+			Scanner sc= new Scanner(System.in); 
+			String querystr= sc.nextLine(); 
+			
+			Query query = new QueryParser("category", analyzer).parse(querystr);
 	
-		reader.close();
+			int hitsPerPage = 10;
+			IndexReader reader = DirectoryReader.open(index);
+			IndexSearcher searcher = new IndexSearcher(reader);
+			TopScoreDocCollector collector = TopScoreDocCollector.create(hitsPerPage);
+			searcher.search(query, collector);
+			ScoreDoc[] hits = collector.topDocs().scoreDocs;
+	
+			printFoundedResults(hits, searcher);
+		
+			reader.close();
+		}
 	}
 	
 	public static List<Article> getArticles(Integer keyWordsCnt) throws Exception {
@@ -91,8 +101,8 @@ public class CategoryParser {
 			
 			TextParser.getWordFrequency(articleFound, keyWordsCnt);		
 			
-			if (cnt == 100) break;
-			cnt ++;
+			/*if (cnt == 100) break;
+			cnt ++;*/
 		}
 		
 		fileReader.closeFile();
