@@ -62,22 +62,21 @@ public class CategoryParser {
 	public static void main(String[] args) throws Exception {
 		BasicConfigurator.configure();
 
+		String filePath = "C:\\Users\\petos\\OneDrive\\Documents\\FIIT\\vinf\\project\\wikiDumpFiles\\short.txt";
+		
+		if (args.length > 0)
+			filePath = args[0];
+		
 		SparkConf sparkConf = new SparkConf().setAppName("Category Parser").setMaster("local");
 		 // start a spark context
 		JavaSparkContext sc = new JavaSparkContext(sparkConf);
 		
-		JavaRDD<String> rdd = sc.textFile("C:\\Users\\petos\\OneDrive\\Documents\\FIIT\\vinf\\project\\wikiDumpFiles\\short.txt");
+		JavaRDD<String> rdd = sc.textFile(filePath);
 		//JavaRDD<List<String>> file = rdd.map(s -> Arrays.asList(s));
 		JavaRDD<List<Cluster>> clusters = rdd.map(s -> Arrays.asList(s))
 											.glom().map(f -> getArticles(5, f)).map(art -> CategoryClusterer.doClustering(art));									
 		
 		clusters.saveAsTextFile("SavedSparkClusters");
-		/*clusters.foreach(artL -> {
-			artL.forEach(c -> {
-				System.out.println(c.getCentroid().getName());
-				System.out.println(c.getCategories().size());
-			});
-		});*/
 
 		//ClusterPersistance.saveClusterToFile(CategoryClusterer.clusters);
 		StandardAnalyzer analyzer = new StandardAnalyzer();
@@ -86,7 +85,7 @@ public class CategoryParser {
 		IndexWriterConfig config = new IndexWriterConfig(analyzer);
 		IndexWriter writer = new IndexWriter(index, config);
 		
-		createIndexes(writer, clusters);
+		createIndexes(writer, clusters.collect());
 		
 		while(true) {
 			System.out.print("Query: ");
@@ -260,8 +259,8 @@ public class CategoryParser {
 		writer.close();
 	}
 	
-	public static void createIndexes(IndexWriter writer, JavaRDD<List<Cluster>> clusters) throws IOException {
-		 clusters.foreach(c -> {
+	public static void createIndexes(IndexWriter writer, List<List<Cluster>> clusters) throws IOException {
+		 clusters.forEach(c -> {
 			 c.forEach(cluster -> {
 				 cluster.getCategories().forEach((category, keyWords) -> {
 					 try {
