@@ -19,7 +19,7 @@ public class CategoryClusterer {
 	static Map<String, Integer> allKeyWords = new TreeMap<String, Integer>();
 	static List<Cluster> clusters = new ArrayList<Cluster>();
 	
-	public static void doClustering(List<Article> articles) {
+	public static List<Cluster> doClustering(List<Article> articles) {
 		fillCategories(articles);
 		
 		setCentroids((int) Math.sqrt(categories.size()), articles);
@@ -29,6 +29,8 @@ public class CategoryClusterer {
 		for (int i = 0; i < 10; i++) {
 			recalculateCluster();
 		}
+		
+		return clusters;
 	}
 	
 	public static void recalculateCluster() {
