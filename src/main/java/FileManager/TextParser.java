@@ -118,8 +118,8 @@ public class TextParser {
         		word.equals("thumb") || word.equals("them") || word.equals("you") ||
         		word.equals("our") || word.equals("year") || word.equals("him") ||
         		word.equals("cite") || word.equals("form") || word.equals("will") ||
-        		word.equals("was") ||
-        		word.length() <= 1) {
+        		word.equals("was") || word.equals("von") || word.equals("John") ||
+        		word.length() <= 2) {
         		continue;
         	}
         	

@@ -12,7 +12,7 @@ public class Cluster implements Serializable {
 	private static final long serialVersionUID = 1L;
 	
 	Category centroid;
-	 Map<String, Object> categories = new TreeMap<String, Object>();
+	 Map<String, Category> categories = new TreeMap<String, Category>();
 	
 	public Category getCentroid() {
 		return centroid;
@@ -23,10 +23,10 @@ public class Cluster implements Serializable {
 	public void setCentroid(Category centroid) {
 		this.centroid = centroid;
 	}
-	public Map<String, Object> getCategories() {
+	public Map<String, Category> getCategories() {
 		return categories;
 	}
-	public void setCategories(Map<String, Object> categories) {
+	public void setCategories(Map<String, Category> categories) {
 		this.categories = categories;
 	}
 	

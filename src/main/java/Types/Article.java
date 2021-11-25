@@ -1,9 +1,12 @@
 package Types;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 
-public class Article {
+public class Article implements Serializable {
+	
+	private static final long serialVersionUID = 1L;
 	String title = null;
 	List<String> text = null;
 	List<Category> categories = null;

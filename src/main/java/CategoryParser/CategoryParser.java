@@ -2,8 +2,10 @@ package CategoryParser;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +20,7 @@ import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.mapred.FileInputFormat;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.shaded.com.fasterxml.jackson.databind.node.ObjectNode;
+import org.apache.hadoop.shaded.org.eclipse.jetty.util.Fields;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
@@ -28,6 +31,7 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
@@ -58,11 +62,10 @@ import scala.Tuple2;
 
 public class CategoryParser {
 
-	@SuppressWarnings("unchecked")
 	public static void main(String[] args) throws Exception {
 		BasicConfigurator.configure();
 
-		String filePath = "C:\\Users\\petos\\OneDrive\\Documents\\FIIT\\vinf\\project\\wikiDumpFiles\\short.txt";
+		String filePath = "C:\\Users\\petos\\OneDrive\\Documents\\FIIT\\vinf\\project\\wikiDumpFiles\\enwiki-latest-pages-articles1.xml-p1p41242";
 		
 		if (args.length > 0)
 			filePath = args[0];
@@ -71,21 +74,22 @@ public class CategoryParser {
 		 // start a spark context
 		JavaSparkContext sc = new JavaSparkContext(sparkConf);
 		
-		JavaRDD<String> rdd = sc.textFile(filePath);
 		//JavaRDD<List<String>> file = rdd.map(s -> Arrays.asList(s));
-		JavaRDD<List<Cluster>> clusters = rdd.map(s -> Arrays.asList(s))
-											.glom().map(f -> getArticles(5, f)).map(art -> CategoryClusterer.doClustering(art));									
+		JavaRDD<List<Article>> articles = sc.textFile(filePath).map(s -> Arrays.asList(s))
+											.glom().map(f -> getArticles(5, f));
 		
-		clusters.saveAsTextFile("SavedSparkClusters");
+		List<Cluster> clusters = CategoryClusterer.doClusteringPar(articles.collect());									
+		
+		//clusters.saveAsTextFile("SavedSparkClusters");
 
 		//ClusterPersistance.saveClusterToFile(CategoryClusterer.clusters);
 		StandardAnalyzer analyzer = new StandardAnalyzer();
-		Directory index = new RAMDirectory();
-		//Directory index = FSDirectory.open(new File("index-dir"));
+		//Directory index = new RAMDirectory();
+		Directory index = FSDirectory.open(Files.createTempDirectory("index-dir"));
 		IndexWriterConfig config = new IndexWriterConfig(analyzer);
 		IndexWriter writer = new IndexWriter(index, config);
 		
-		createIndexes(writer, clusters.collect());
+		createIndexes(writer, clusters);
 		
 		while(true) {
 			System.out.print("Query: ");
@@ -113,7 +117,7 @@ public class CategoryParser {
 		//check if categories was already clustered
 		File file = new File("clusterPersistance.txt");
 		
-        if (file.length() == 0) {
+        //if (file.length() == 0) {
         	List<Article> articles = new ArrayList<Article>();
         	if(wikiFile != null)
         		articles = getArticles(5, wikiFile);
@@ -121,10 +125,10 @@ public class CategoryParser {
         		articles = getArticles(5);
 			CategoryClusterer.doClustering(articles);
 			
-			ClusterPersistance.saveClusterToFile(CategoryClusterer.clusters);
-        } else {
-        	CategoryClusterer.clusters = ClusterPersistance.getClusterFromFile();
-        }
+		//	ClusterPersistance.saveClusterToFile(CategoryClusterer.clusters);
+        //} else {
+        //	CategoryClusterer.clusters = ClusterPersistance.getClusterFromFile();
+        //}
 		
 		StandardAnalyzer analyzer = new StandardAnalyzer();
 		Directory index = new RAMDirectory();
@@ -151,6 +155,7 @@ public class CategoryParser {
 			printFoundedResults(hits, searcher);
 		
 			reader.close();
+			//sc.close();
 		}
 	}
 	
@@ -162,7 +167,7 @@ public class CategoryParser {
 		Article articleFound = null;
 		
 		
-		fileReader.readFile("C:\\Users\\petos\\OneDrive\\Documents\\FIIT\\vinf\\project\\wikiDumpFiles\\short.txt");
+		fileReader.readFile("C:\\Users\\petos\\OneDrive\\Documents\\FIIT\\vinf\\project\\wikiDumpFiles\\enwiki-latest-pages-articles1.xml-p1p41242");
 		
 		int cnt = 0;
 		
@@ -233,43 +238,53 @@ public class CategoryParser {
 	public static void addKeywordsToCategories(List<Article> articles) {
 		articles.forEach(article -> {
 			article.getCategories().forEach(category -> {
+				category.addTitle(article.getTitle());
 				category.setKeyWords(article.getKeyWords());
 			});
 		});
 	};
 	
-	private static void addDoc(IndexWriter w, String category, String cluster) throws IOException {
+
+	private static void addDoc(IndexWriter w, String category, String cluster, TreeMap<String, Integer> keywords, ArrayList<String> titles) throws IOException {
 		Document doc = new Document();
+		keywords.forEach((keyword, count) -> {
+			doc.add(new StringField("keyword", keyword, Field.Store.YES));
+		});
+		titles.forEach(title -> {
+			doc.add(new StringField("title", title, Field.Store.YES));
+		});
 		doc.add(new TextField("category", category, Field.Store.YES));
 		doc.add(new TextField("cluster", cluster, Field.Store.YES));
 		w.addDocument(doc);
 	}
 	
 	public static void createIndexes(IndexWriter writer) throws IOException {
-		 CategoryClusterer.clusters.forEach(cluster -> {
-			 cluster.getCategories().forEach((category, keyWords) -> {
+		List<Cluster>clust = CategoryClusterer.clusters;
+		CategoryClusterer.clusters.forEach(cluster -> {
+			 cluster.getCategories().forEach((categoryName, cat) -> {
 				 try {
-					addDoc(writer, category, cluster.getCentroid().getName());
+					addDoc(writer, categoryName, cluster.getCentroid().getName(), (TreeMap<String, Integer>)cat.getKeyWords(), cat.getTitles());
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
 			 });
 		 });
 		
+		 writer.commit();
 		writer.close();
 	}
 	
-	public static void createIndexes(IndexWriter writer, List<List<Cluster>> clusters) throws IOException {
+	public static void createIndexes(IndexWriter writer, List<Cluster> clusters) throws IOException {
 		 clusters.forEach(c -> {
-			 c.forEach(cluster -> {
-				 cluster.getCategories().forEach((category, keyWords) -> {
+
+				 c.getCategories().forEach((categoryName, cat) -> {
 					 try {
-						addDoc(writer, category, cluster.getCentroid().getName());
+						addDoc(writer, categoryName, c.getCentroid().getName(), (TreeMap<String, Integer>)cat.getKeyWords(), cat.getTitles());
 					} catch (IOException e) {
 						e.printStackTrace();
 					}
 				 });
-			 });
+	
 		 });
 		writer.close();
 	}
@@ -278,10 +293,37 @@ public class CategoryParser {
 		System.out.println("Found " + hits.length + " hits.");
 		for (int i = 0; i < hits.length; ++i) {
 			int docId = hits[i].doc;
+			boolean firstTitle = true;
+			boolean firstKeyword = true;
 			Document d = searcher.doc(docId);
 			System.out.println((i + 1) + ". " + d.get("category") + "\t in cluster: " + d.get("cluster"));
+			Iterator<IndexableField> it = d.getFields().iterator();
+			
+			 while ( it.hasNext() )
+			  {
+			    IndexableField field = it.next();
+			    String fieldName = field.name();
+			    if ( fieldName.equals("keyword"))
+			    {
+			    	if (firstKeyword) {
+			    		System.out.print("\tKeywords: ");
+			    		firstKeyword = false;
+			    	}
+			    	System.out.print(field.stringValue() + ", ");
+			    	
+			    } else if (fieldName.equals("title")) {
+			    	if (firstTitle) {
+			    		System.out.print("\n\tTitles: ");
+			    		firstTitle = false;
+			    	}
+			    	System.out.print(field.stringValue() + ", ");
+			    	
+			    }
+			  }
+			
 			Cluster foundCluster = CategoryClusterer.getClusterByCentroid(d.get("cluster"));
 			//printSimilarCategries(foundCluster);
+			System.out.println("\n");
 		}
 	}
 	

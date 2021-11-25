@@ -13,7 +13,7 @@ import Types.Cluster;
 
 public class CategoryClusterer {
 	
-	static Map<String, Object> categories = new TreeMap<String, Object>();
+	static Map<String, Category> categories = new TreeMap<String, Category>();
 	
 	//probably isnt needed
 	static Map<String, Integer> allKeyWords = new TreeMap<String, Integer>();
@@ -27,6 +27,28 @@ public class CategoryClusterer {
 		createClusters();
 		
 		for (int i = 0; i < 10; i++) {
+			System.out.println(i+"0%");
+			recalculateCluster();
+		}
+		
+		return clusters;
+	}
+	
+	public static List<Cluster> doClusteringPar(List<List<Article>> articles) {
+		List<Article> art = new ArrayList<Article>();
+		for(List<Article> a : articles) {
+			art.addAll(a);
+		}
+		
+		
+		fillCategories(art);
+		
+		setCentroids((int) Math.sqrt(categories.size()), art);
+		
+		createClusters();
+		
+		for (int i = 0; i < 10; i++) {
+			System.out.println(i+"0%");
 			recalculateCluster();
 		}
 		
@@ -46,17 +68,17 @@ public class CategoryClusterer {
 			Integer distanceMean = 0;
 			Category newCentroid = null;
 				
-			for(Map.Entry<String, Object> cat1 : cluster.getCategories().entrySet()) {
+			for(Map.Entry<String, Category> cat1 : cluster.getCategories().entrySet()) {
 				
-				for(Map.Entry<String, Object> cat2 : cluster.getCategories().entrySet()) {
+				for(Map.Entry<String, Category> cat2 : cluster.getCategories().entrySet()) {
 					if (cat1.getKey() != cat2.getKey()) {
-						distanceMean += CalculateCategoryDistance((Map<String, Integer>) cat1.getValue(), (Map<String, Integer>) cat2.getValue());
+						distanceMean += CalculateCategoryDistance((Map<String, Integer>) cat1.getValue().getKeyWords(), (Map<String, Integer>) cat2.getValue().getKeyWords());
 					} 
 				};
 				
 				if (distanceMean >= bestDistance ) {
 					distanceMean = distanceMean/cluster.getCategories().size();
-					newCentroid = new Category(cat1.getKey(), (Map<String, Integer>) cat1.getValue());
+					newCentroid = new Category(cat1.getValue());
 				}
 			}
 			
@@ -76,7 +98,6 @@ public class CategoryClusterer {
 	}
 	
 	//set k centroids
-	@SuppressWarnings("unchecked")
 	public static void setCentroids(int k, List<Article> articles) {
 		for (int i = 0; i < k; i++) {
 			List<Category> catList = articles.get((int) (Math.random() * (articles.size()))).getCategories();
@@ -84,29 +105,25 @@ public class CategoryClusterer {
 			Category cat = catList.get((int) (Math.random() * catList.size()));
 			Cluster cluster = new Cluster();
 			
-			cluster.setCentroid(cat.getName(),(Map<String, Integer>) categories.get(cat.getName()));
+			cluster.setCentroid(cat);
 			clusters.add(cluster);
 		}
 	}
 	
 	public static void createClusters() {
-		categories.forEach((catName, catKeyWords) -> {
-			findClosestCluster(catName, catKeyWords);
+		categories.forEach((catName, cat) -> {
+			
+			findClosestCluster(catName, cat);
 		});
 	}
 	
-	public static void findClosestCluster(String category, Object catKeyWords) {
+	public static void findClosestCluster(String category, Category cat) {
 		Cluster closest = null;
 		int match = 0;
 		
 		for (Cluster cluster : clusters) {	
-			
-			String categoryName = cluster.getCentroid().getName();
-			if (category.equals("1918 establishments in the United States")) {
-				System.out.println("");
-			}
 				
-			int distance = CalculateCategoryDistance((Map<String, Integer>)cluster.getCentroid().getKeyWords(), (Map<String, Integer>)catKeyWords);
+			int distance = CalculateCategoryDistance((Map<String, Integer>)cluster.getCentroid().getKeyWords(), cat.getKeyWords());
 			
 			if (distance > match) {
 				 match = distance;
@@ -117,14 +134,13 @@ public class CategoryClusterer {
 		//there isnt any similar centroid
 		if (closest == null) {
 			Cluster newCluster = new Cluster();
-			newCluster.setCentroid(category, (Map<String, Integer>) catKeyWords);
+			newCluster.setCentroid(cat);
 			clusters.add(newCluster);
 		} else {
-			closest.getCategories().put(category, catKeyWords);
+			closest.getCategories().put(cat.getName(), cat);
 		}
 	}
 	
-	@SuppressWarnings("unchecked")
 	public static void fillCategories(List<Article> articles) {
 		//create list of all keywords
 		for (Article article : articles) {
@@ -145,16 +161,18 @@ public class CategoryClusterer {
 				if (categories.containsKey(cat.getName())) {
 					
 					//ak sa druhy raz nasla rovnaka trieda tak sa vahy rovnakych keyWords tychto dvoch vyskytov triedy zrataju
-					for (Map.Entry<String, Integer> word : ((TreeMap<String, Integer>)categories.get(cat.getName())).entrySet()) {
+					for (Map.Entry<String, Integer> word : ((TreeMap<String, Integer>)categories.get(cat.getName()).getKeyWords()).entrySet()) {
 						if (keyWords.containsKey(word.getKey())) {
 							keyWords.put(word.getKey(), word.getValue()+keyWords.get(word.getKey()));
 			        	} else {
 			        		keyWords.put(word.getKey(), word.getValue());
 			        	}
 					}
+					cat.setKeyWords(keyWords);
+					cat.addTitle(article.getTitle());
 					//keyWords.putAll(((TreeMap<String, Integer>)categories.get(cat.getName())));
 				}
-				categories.put(cat.getName(),keyWords);
+				categories.put(cat.getName(),cat);
 			});
 		}
 	}
@@ -190,11 +208,11 @@ public class CategoryClusterer {
 		});
 	}
 
-	public static Map<String, Object> getCategories() {
+	public static Map<String, Category> getCategories() {
 		return categories;
 	}
 
-	public static void setCategories(Map<String, Object> categories) {
+	public static void setCategories(Map<String, Category> categories) {
 		CategoryClusterer.categories = categories;
 	}
 
