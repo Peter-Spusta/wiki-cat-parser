@@ -104,6 +104,38 @@ public class FileReader {
 		}
 	}
 	
+	public static void readNextPagePar(List<String> file) throws IOException {
+		Boolean pageFound = false;
+		page = new ArrayList<String>();
+
+		while(index < file.size())	{
+			//System.out.println("++++++++++++++++++++++++++++++++++++++");
+			//System.out.println("index: " + index);
+			//System.out.println(file.get(index).toString());
+			//System.out.println("++++++++++++++++++++++++++++++++++++++");
+			if (Pattern.matches(".*\\s*\\<page\\>.*", file.toString())) {
+				pageFound = true;
+			}
+			//System.out.println("line matches Page: " + pageFound);
+			if (pageFound) {
+				StringBuffer sb= new StringBuffer(file.toString());
+				sb.deleteCharAt(0);
+				sb.deleteCharAt(sb.length()-1);
+			//	System.out.println(sb.toString());
+				page.add(sb.toString());
+			}
+			
+			if (Pattern.matches(".*\\s*\\</page\\>.*", file.toString())) {
+				pageFound = false;
+				//System.out.println("line matches Page: " + pageFound);
+				index++;
+				break;
+			}
+			index++;
+		}
+	}
+	
+	
 	public static void printPage() {
 		page.forEach( row -> { System.out.println(row); });
 	}

@@ -77,8 +77,8 @@ public class CategoryParser {
 		//JavaRDD<List<String>> file = rdd.map(s -> Arrays.asList(s));
 		JavaRDD<List<Article>> articles = sc.textFile(filePath).map(s -> Arrays.asList(s))
 											.glom().map(f -> getArticles(5, f));
-		
-		List<Cluster> clusters = CategoryClusterer.doClusteringPar(articles.collect());									
+		articles.reduce((a,b) -> CategoryClusterer.doClustering(a,b));
+		//List<Cluster> clusters = CategoryClusterer.doClusteringPar(articles.collect());									
 		
 		//clusters.saveAsTextFile("SavedSparkClusters");
 
@@ -89,7 +89,7 @@ public class CategoryParser {
 		IndexWriterConfig config = new IndexWriterConfig(analyzer);
 		IndexWriter writer = new IndexWriter(index, config);
 		
-		createIndexes(writer, clusters);
+		createIndexes(writer, CategoryClusterer.clusters);
 		
 		while(true) {
 			System.out.print("Query: ");
@@ -185,7 +185,7 @@ public class CategoryParser {
 			
 			TextParser.getWordFrequency(articleFound, keyWordsCnt);		
 			
-			if (cnt == 100) break;
+			if (cnt == 2700) break;
 			cnt ++;
 		}
 		
@@ -224,8 +224,8 @@ public class CategoryParser {
 	
 			TextParser.getWordFrequency(articleFound, keyWordsCnt);		
 			
-			if (cnt == 100) break;
-			cnt ++;
+			//if (cnt == 100) break;
+			//cnt ++;
 		}
 		
 		//System.out.println("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
@@ -285,6 +285,21 @@ public class CategoryParser {
 					}
 				 });
 	
+		 });
+		writer.close();
+	}
+	
+	public static void createIndexes2(IndexWriter writer, List<List<Cluster>> clusters) throws IOException {
+		 clusters.forEach(c -> {
+			 c.forEach(cluster -> {
+				 cluster.getCategories().forEach((categoryName, cat) -> {
+					 try {
+						addDoc(writer, categoryName, cluster.getCentroid().getName(), (TreeMap<String, Integer>)cat.getKeyWords(), cat.getTitles());
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				 });
+			 });
 		 });
 		writer.close();
 	}

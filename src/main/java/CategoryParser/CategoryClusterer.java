@@ -19,6 +19,36 @@ public class CategoryClusterer {
 	static Map<String, Integer> allKeyWords = new TreeMap<String, Integer>();
 	static List<Cluster> clusters = new ArrayList<Cluster>();
 	
+	public static void doClusteringSpark(Article a) {
+		a.getCategories().forEach(c -> {
+			c.addTitle(a.getTitle());
+			c.setKeyWords(a.getKeyWords());
+			findClosestCluster(c.getName(), c);
+		});
+	}
+	
+	public static List<Article> doClustering(List<Article> articles, List<Article> articlesb) {
+		
+		if (articles != null && articlesb != null)
+			articles.addAll(articlesb);
+		if (articles == null && articlesb != null)
+			articles = articlesb;
+		if (articles == null && articlesb == null)
+			return null;
+		fillCategories(articles);
+		
+		setCentroids((int) Math.sqrt(categories.size()), articles);
+		
+		createClusters();
+		
+		for (int i = 0; i < 10; i++) {
+			System.out.println(i+"0%");
+			recalculateCluster();
+		}
+		
+		return null;
+	}
+	
 	public static List<Cluster> doClustering(List<Article> articles) {
 		fillCategories(articles);
 		
