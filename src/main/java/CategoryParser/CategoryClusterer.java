@@ -41,7 +41,7 @@ public class CategoryClusterer {
 		
 		createClusters();
 		
-		for (int i = 0; i < 10; i++) {
+		for (int i = 0; i < 3; i++) {
 			System.out.println(i+"0%");
 			recalculateCluster();
 		}
@@ -56,7 +56,7 @@ public class CategoryClusterer {
 		
 		createClusters();
 		
-		for (int i = 0; i < 10; i++) {
+		for (int i = 0; i < 3; i++) {
 			System.out.println(i+"0%");
 			recalculateCluster();
 		}
@@ -77,7 +77,7 @@ public class CategoryClusterer {
 		
 		createClusters();
 		
-		for (int i = 0; i < 10; i++) {
+		for (int i = 0; i < 3; i++) {
 			System.out.println(i+"0%");
 			recalculateCluster();
 		}
@@ -199,7 +199,9 @@ public class CategoryClusterer {
 			        	}
 					}
 					cat.setKeyWords(keyWords);
-					cat.addTitle(article.getTitle());
+					ArrayList<String> titles = categories.get(cat.getName()).getTitles();
+					titles.add(article.getTitle());
+					cat.setTitles(titles);
 					//keyWords.putAll(((TreeMap<String, Integer>)categories.get(cat.getName())));
 				}
 				categories.put(cat.getName(),cat);

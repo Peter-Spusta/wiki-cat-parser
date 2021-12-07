@@ -77,8 +77,8 @@ public class CategoryParser {
 		//JavaRDD<List<String>> file = rdd.map(s -> Arrays.asList(s));
 		JavaRDD<List<Article>> articles = sc.textFile(filePath).map(s -> Arrays.asList(s))
 											.glom().map(f -> getArticles(5, f));
-		articles.reduce((a,b) -> CategoryClusterer.doClustering(a,b));
-		//List<Cluster> clusters = CategoryClusterer.doClusteringPar(articles.collect());									
+		//articles.reduce((a,b) -> CategoryClusterer.doClustering(a,b));
+		List<Cluster> clusters = CategoryClusterer.doClusteringPar(articles.collect());									
 		
 		//clusters.saveAsTextFile("SavedSparkClusters");
 
@@ -89,25 +89,43 @@ public class CategoryParser {
 		IndexWriterConfig config = new IndexWriterConfig(analyzer);
 		IndexWriter writer = new IndexWriter(index, config);
 		
-		createIndexes(writer, CategoryClusterer.clusters);
+		createIndexes(writer, clusters);
 		
 		while(true) {
+			int showenCnt = 0;
 			System.out.print("Query: ");
 			Scanner scan= new Scanner(System.in); 
 			String querystr= scan.nextLine(); 
 			
 			Query query = new QueryParser("category", analyzer).parse(querystr);
 	
-			int hitsPerPage = 10;
+			int hitsPerPage = 5;
 			IndexReader reader = DirectoryReader.open(index);
 			IndexSearcher searcher = new IndexSearcher(reader);
 			TopScoreDocCollector collector = TopScoreDocCollector.create(hitsPerPage);
 			searcher.search(query, collector);
 			ScoreDoc[] hits = collector.topDocs().scoreDocs;
 	
-			printFoundedResults(hits, searcher);
-		
-			reader.close();
+			showenCnt = printFoundedResults(hits, searcher, showenCnt);
+			
+	
+			while(true) {
+				System.out.print("Next Page (y/n): ");
+				Scanner scan1= new Scanner(System.in); 
+				String querystr2= scan1.nextLine(); 
+				if(querystr2.equals("y")) {
+					collector = TopScoreDocCollector.create(hitsPerPage + showenCnt);
+					searcher.search(query, collector);
+					hits = collector.topDocs().scoreDocs;
+			
+					showenCnt = printFoundedResults(hits, searcher, showenCnt);
+				} else {
+					reader.close();
+					break;
+					
+				}
+				
+			}
 		}
 		
 		//start(null);
@@ -139,6 +157,7 @@ public class CategoryParser {
 		createIndexes(writer);
 		
 		while(true) {
+			int showenCnt = 0;
 			System.out.print("Query: ");
 			Scanner sc= new Scanner(System.in); 
 			String querystr= sc.nextLine(); 
@@ -152,7 +171,7 @@ public class CategoryParser {
 			searcher.search(query, collector);
 			ScoreDoc[] hits = collector.topDocs().scoreDocs;
 	
-			printFoundedResults(hits, searcher);
+			printFoundedResults(hits, searcher, showenCnt);
 		
 			reader.close();
 			//sc.close();
@@ -224,8 +243,8 @@ public class CategoryParser {
 	
 			TextParser.getWordFrequency(articleFound, keyWordsCnt);		
 			
-			//if (cnt == 100) break;
-			//cnt ++;
+			if (cnt == 50) break;
+			cnt ++;
 		}
 		
 		//System.out.println("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
@@ -304,9 +323,10 @@ public class CategoryParser {
 		writer.close();
 	}
 	
-	public static void printFoundedResults(ScoreDoc[] hits, IndexSearcher searcher) throws IOException {
+	public static int printFoundedResults(ScoreDoc[] hits, IndexSearcher searcher, int index) throws IOException {
 		System.out.println("Found " + hits.length + " hits.");
-		for (int i = 0; i < hits.length; ++i) {
+		for (int i = index; i < hits.length; ++i) {
+			index++;
 			int docId = hits[i].doc;
 			boolean firstTitle = true;
 			boolean firstKeyword = true;
@@ -340,6 +360,7 @@ public class CategoryParser {
 			//printSimilarCategries(foundCluster);
 			System.out.println("\n");
 		}
+		return index;
 	}
 	
 	public static void printSimilarCategries(Cluster cluster) {
